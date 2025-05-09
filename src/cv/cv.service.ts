@@ -8,6 +8,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { SkillService } from 'src/skill/skill.service';
 import { FilterCvDto } from './dto/filterCvDto';
 import { UserService } from 'src/user/user.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { CvCreatedEvent, CvDeletedEvent, CvReadEvent, CvUpdatedEvent } from 'src/cv-events/events/cv.events';
 
 @Injectable()
 export class CvService extends GenericService<Cv>  {
@@ -19,15 +21,36 @@ export class CvService extends GenericService<Cv>  {
     protected readonly repository: Repository<Cv>,
     private readonly skillService:SkillService,
     private readonly userService:UserService,
+    private eventEmitter: EventEmitter2,
+
   ) {
     super(repository); 
   }
   async findByJob(job: string): Promise<Cv[]> {
-    return this.repository.find({ where: { job } });
+    const cvs= await this.repository.find({ where: { job } });
+    if (cvs) {
+      (cvs as any).forEach((cv: Cv) => {
+        const event = new CvReadEvent();
+        event.cvId = cv.id;
+        event.user = cv.user;
+        this.eventEmitter.emit('cv.read', event);
+      });
+    }
+    
+    return cvs;
   }
 
   async findByUserId(userId: string): Promise<Cv[]> {
-    return this.repository.find({ where: { user: { id: userId } } });
+    const cvs=await this.repository.find({ where: { user: { id: userId } } });
+    if (cvs) {
+      (cvs as any).forEach((cv: Cv) => {
+        const event = new CvReadEvent();
+        event.cvId = cv.id;
+        event.user = cv.user;
+        this.eventEmitter.emit('cv.read', event);
+      });
+    }
+    return cvs;
   }
 
 
@@ -43,6 +66,11 @@ export class CvService extends GenericService<Cv>  {
     }
 
     cv.skills.push(skill);
+     const event = new CvUpdatedEvent();
+    event.cvId = cv.id;
+    event.user =cv.user;
+    event.details = `CV id:${cv.id} mis à jour`;
+    this.eventEmitter.emit('cv.updated', event);
     return this.repository.save(cv);
   }
 
@@ -83,6 +111,11 @@ export class CvService extends GenericService<Cv>  {
       user,
       skills,
     });
+    const event = new CvCreatedEvent();
+    event.cvId = cv.id;
+    event.user = user;
+    event.details = `CV "${cv.name}" créé`;
+    this.eventEmitter.emit('cv.created', event);
   
     return await this.repository.save(cv);
   }
@@ -97,6 +130,11 @@ export class CvService extends GenericService<Cv>  {
 
       throw new Error(`You are not the owner of this CV`);
     }
+     const event = new CvDeletedEvent();
+    event.cvId = cv.id;
+    event.user = cv.user;
+    event.details = `CV id:${cv.id} supprimé`;
+    this.eventEmitter.emit('cv.deleted', event);
     return await this.remove(id);
 
   }
@@ -112,6 +150,11 @@ export class CvService extends GenericService<Cv>  {
     if (cv.user.id !== userId) {
       throw new Error(`You are not the owner of this CV`);
     }
+     const event = new CvUpdatedEvent();
+    event.cvId = cv.id;
+    event.user =cv.user;
+    event.details = `CV id:${cv.id} mis à jour`;
+    this.eventEmitter.emit('cv.updated', event);
     await this.repository.update(id, updateCvDto);
   }
   async setImagePath(cvId: string, imagePath: string): Promise<Cv> {

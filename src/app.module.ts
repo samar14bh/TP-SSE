@@ -14,6 +14,8 @@ import { AuthMiddleware } from './middleware/auth.middleware';
 import { CvControllerV2 } from './cv/cv.controller.v2';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { CvEventsModule } from './cv-events/cv-events.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [ TypeOrmModule.forRoot({
@@ -29,7 +31,9 @@ import { join } from 'path';
   ServeStaticModule.forRoot({
     rootPath: join(__dirname, '..', 'public', 'uploads'), 
     serveRoot: '/uploads',  
-  }),
+  }),EventEmitterModule.forRoot(),
+    
+  CvEventsModule,
   
   
   ], 
