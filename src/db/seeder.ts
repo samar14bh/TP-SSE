@@ -32,7 +32,7 @@ const app = await NestFactory.createApplicationContext(AppModule);
     cin: String(randNumber()),
     job: 'Software Developer',
     path: '/path/to/cv.pdf',
-    user: user,
+    userId: user.id,
   });
   
 

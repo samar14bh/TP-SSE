@@ -11,8 +11,8 @@ export class CvEventsListener {
   constructor(private readonly cvEventsService: CvEventsService) {}
 
   @OnEvent('cv.created')
-  handleCvCreatedEvent(event: CvCreatedEvent) {
-    this.cvEventsService.createEvent(
+  async handleCvCreatedEvent(event: CvCreatedEvent) {
+    await this.cvEventsService.createEvent(
       event.cvId, 
       OperationType.CREATE, 
       event.user,
@@ -21,8 +21,8 @@ export class CvEventsListener {
   }
 
   @OnEvent('cv.updated')
-  handleCvUpdatedEvent(event: CvUpdatedEvent) {
-    this.cvEventsService.createEvent(
+  async handleCvUpdatedEvent(event: CvUpdatedEvent) {
+    await this.cvEventsService.createEvent(
       event.cvId, 
       OperationType.UPDATE, 
       event.user,
@@ -31,8 +31,8 @@ export class CvEventsListener {
   }
 
   @OnEvent('cv.deleted')
-  handleCvDeletedEvent(event: CvDeletedEvent) {
-    this.cvEventsService.createEvent(
+  async handleCvDeletedEvent(event: CvDeletedEvent) {
+    await this.cvEventsService.createEvent(
       event.cvId, 
       OperationType.DELETE, 
       event.user,
@@ -41,8 +41,8 @@ export class CvEventsListener {
   }
 
   @OnEvent('cv.read')
-  handleCvReadEvent(event: CvReadEvent) {
-    this.cvEventsService.createEvent(
+ async  handleCvReadEvent(event: CvReadEvent) {
+    await this.cvEventsService.createEvent(
       event.cvId, 
       OperationType.READ, 
       event.user

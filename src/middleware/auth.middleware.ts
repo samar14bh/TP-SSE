@@ -9,9 +9,9 @@ export class AuthMiddleware implements NestMiddleware {
     const token = req.headers['auth-user'] as string;
 
 
-    if (!token) {
+    /*if (!token) {
       return res.status(401).json({ message: 'Token manquant' });
-    }
+    }*/
     console.log('Token:', token); 
 
     try {

@@ -26,6 +26,53 @@ export class CvService extends GenericService<Cv>  {
   ) {
     super(repository); 
   }
+  //added using the event emitter
+  async create(createCvDto: CreateCvDto): Promise<Cv> {
+    const entity = this.repository.create(createCvDto);
+     const cv= await this.repository.save(entity);
+    const user = await this.userService.findOne(createCvDto.userId);
+    const event = new CvCreatedEvent();
+    event.cvId = cv.id;
+    event.user = user;
+    event.details = `CV "${cv.name}" créé`;
+    this.eventEmitter.emit('cv.created', event);
+    return cv;
+  }
+  async findOne(id: string): Promise<Cv> {
+    const cv = await this.repository.findOne({ where: { id }, relations: ['skills'] });
+    if (!cv) {
+      throw new Error(`CV with id ${id} not found`);
+    }
+    const event = new CvReadEvent();
+    event.cvId = cv.id;
+    event.user = cv.user;
+    this.eventEmitter.emit('cv.read', event);
+    return cv;
+  }
+  async remove(id: string): Promise<void> {
+    const cv = await this.repository.findOne({ where: { id } });
+    if (cv) {
+      const event = new CvDeletedEvent();
+      event.cvId = cv.id;
+      event.user = cv.user;
+      event.details = `CV id:${cv.id} supprimé`;
+      this.eventEmitter.emit('cv.deleted', event);
+    }
+    await this.repository.delete(id);
+  }
+  async update(id: string, updateCvDto: UpdateCvDto): Promise<Cv> {
+    const cv = await this.repository.findOne({ where: { id } });
+    if (cv) {
+      const event = new CvUpdatedEvent();
+      event.cvId = cv.id;
+      event.user = cv.user;
+      event.details = `CV id:${cv.id} mis à jour`;
+      this.eventEmitter.emit('cv.updated', event);
+    }
+    await this.repository.update(id, updateCvDto);
+    return this.findOne(id);
+  }
+
   async findByJob(job: string): Promise<Cv[]> {
     const cvs= await this.repository.find({ where: { job } });
     if (cvs) {
@@ -106,18 +153,19 @@ export class CvService extends GenericService<Cv>  {
       ? await this.skillService.findByIds(skillIds)
       : [];
   
-    const cv = this.repository.create({
+    const datacv = this.repository.create({
       ...cvData,
       user,
       skills,
     });
+    const cv= await this.repository.save(datacv);
     const event = new CvCreatedEvent();
     event.cvId = cv.id;
     event.user = user;
     event.details = `CV "${cv.name}" créé`;
     this.eventEmitter.emit('cv.created', event);
   
-    return await this.repository.save(cv);
+    return cv;
   }
   async removeIfOwner(id: string, userId:   string) {
     const cv=await this.repository.findOne({ where: { id }});

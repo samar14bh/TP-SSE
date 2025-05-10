@@ -13,18 +13,25 @@ export class CvEventsService {
   ) {}
 
   async createEvent(cvId: string, typeOperation: OperationType, user: User, details?: string): Promise<CvEvent> {
-    const event = this.cvEventRepository.create({
+
+  if (!cvId || !typeOperation) {
+    console.error('Missing required fields for event creation');
+    throw new Error('CvId and operation type are required');
+  }
+    const event = await this.cvEventRepository.create({
       cvId,
       typeOperation,
       user,
-      details
+      details,
+      dateHeure: new Date()
     });
-    
-    return this.cvEventRepository.save(event);
+    console.log('Emitting cv.created event:', event);
+
+    return await this.cvEventRepository.save(event);
   }
 
   async findAll(): Promise<CvEvent[]> {
-    return this.cvEventRepository.find({
+    return await this.cvEventRepository.find({
       order: { dateHeure: 'DESC' }
     });
   }

@@ -1,17 +1,24 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req } from '@nestjs/common';
 import { CvService } from './cv.service';
 import { CreateCvDto } from './dto/create-cv.dto';
 import { UpdateCvDto } from './dto/update-cv.dto';
 import { FilterCvDto } from './dto/filterCvDto';
+import { Cv } from './entities/cv.entity';
 
 @Controller('cv')
 export class CvController {
   constructor(private readonly cvService: CvService) {}
 
-  @Post()
+  /*@Post()
   create(@Body() createCvDto: CreateCvDto) {
     return this.cvService.create(createCvDto);
-  }
+  }*/
+  @Post()
+      async create(@Body() cvDto: CreateCvDto, @Req() req): Promise<Cv> {
+      return this.cvService.createWithOwner({
+          ...cvDto,
+          userId: req.userId,
+      });}
 
   @Get()
   findAll() {
