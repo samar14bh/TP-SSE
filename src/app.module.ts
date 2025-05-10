@@ -17,15 +17,33 @@ import { join } from 'path';
 import { JwtModule } from '@nestjs/jwt';
 import * as dbConfigJson from './db/db.config.json';
 const dbConfig = dbConfigJson as TypeOrmModuleOptions;
+import { CvEventsModule } from './cv-events/cv-events.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [ TypeOrmModule.forRoot(dbConfig), TypeOrmModule.forFeature([User, Skill, Cv]), CvModule, SkillModule,
+    TypeOrmModule.forRoot({
+    type:'mysql',
+    host:'localhost', 
+    port: 3306,  
+    username:'root', 
+    password:'dontgo',
+    database:'cvbd', 
+    synchronize: true,
+    autoLoadEntities: true,
+  }), TypeOrmModule.forFeature([User, Skill, Cv]), CvModule, SkillModule,
   ServeStaticModule.forRoot({
     rootPath: join(__dirname, '..', 'public', 'uploads'), 
     serveRoot: '/uploads',  
   }),
   JwtModule.register({ secret: 'SECRET_KEY', signOptions: { expiresIn: '60m' } })
-  ],
+  ,EventEmitterModule.forRoot(),
+    
+  CvEventsModule,
+  
+  
+  ], 
+
   controllers: [AppController],
   providers: [AppService],
 })
@@ -38,3 +56,5 @@ export class AppModule {
   
   
 }
+
+

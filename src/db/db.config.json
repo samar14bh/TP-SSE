@@ -2,9 +2,9 @@
     "type": "mysql",
     "host": "localhost",
     "port": 3306,
-    "username": "springstudent",
-    "password": "springstudent",
-    "database": "cv-manager-db",
+    "username": "root",
+    "password": "dontgo",
+    "database": "cvbd",
     "synchronize": true,
     "autoLoadEntities": true
   }
