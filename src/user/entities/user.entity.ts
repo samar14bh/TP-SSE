@@ -20,6 +20,11 @@ export class User {
     @IsNotEmpty()
     password: string;
 
+    @Column({ type: 'varchar', length: 100 })
+    salt: string;  
+    @Column({ type: 'varchar', length: 50 })
+    role: string;
+
     @OneToMany(() => Cv, (cv: Cv) => cv.user)
     cvs: Cv[];
 

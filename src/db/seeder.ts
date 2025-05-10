@@ -36,7 +36,7 @@ const app = await NestFactory.createApplicationContext(AppModule);
   });
   
 
-  await cvService.addSkillToCv(cv.id, skills[0].id);
+await cvService.addSkillToCv(cv.id, skills[0].id);
 await cvService.addSkillToCv(cv.id, skills[1].id);
     
 console.log(`User ${user.username} created with CV ID: ${cv.id}`);

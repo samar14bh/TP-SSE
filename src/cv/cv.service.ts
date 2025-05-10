@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { SkillService } from 'src/skill/skill.service';
 import { FilterCvDto } from './dto/filterCvDto';
 import { UserService } from 'src/user/user.service';
+import { PaginationService ,PaginationResult} from 'src/services/pagination.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CvCreatedEvent, CvDeletedEvent, CvReadEvent, CvUpdatedEvent } from 'src/cv-events/events/cv.events';
 
@@ -21,10 +22,26 @@ export class CvService extends GenericService<Cv>  {
     protected readonly repository: Repository<Cv>,
     private readonly skillService:SkillService,
     private readonly userService:UserService,
+    private readonly paginationService: PaginationService,
     private eventEmitter: EventEmitter2,
 
   ) {
     super(repository); 
+  }
+
+
+  //new paginate method
+  async paginate(
+    page = 1,
+    limit = 10,
+  ): Promise<PaginationResult<Cv>> {
+    const qb = this.repository
+      .createQueryBuilder('cv')
+      .leftJoinAndSelect('cv.user', 'user')
+      .leftJoinAndSelect('cv.skills', 'skills');
+      
+
+    return this.paginationService.paginateQuery<Cv>(qb, page, limit);
   }
   //added using the event emitter
   async create(createCvDto: CreateCvDto): Promise<Cv> {
@@ -100,7 +117,7 @@ export class CvService extends GenericService<Cv>  {
     return cvs;
   }
 
-
+  
   async addSkillToCv(cvId: string, skillId: string): Promise<Cv> {
     const cv = await this.repository.findOne({ where: { id: cvId }, relations: ['skills'] });
     if (!cv) {
