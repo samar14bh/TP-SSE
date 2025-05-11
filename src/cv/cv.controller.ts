@@ -1,51 +1,47 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Req, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { CvService } from './cv.service';
 import { CreateCvDto } from './dto/create-cv.dto';
 import { UpdateCvDto } from './dto/update-cv.dto';
-import { FilterCvDto } from './dto/filterCvDto';
+import { JwtAuthGuard } from '../jwt/jwt-auth.guard';
+import { RoleGuard } from '../jwt/RoleGuard';
+import { CurrentUser } from '../decorator/currentUser';
 import { Cv } from './entities/cv.entity';
-import { JwtAuthGuard } from 'src/jwt/jwt-auth.guard';
-import { RoleGuard } from 'src/jwt/RoleGuard';
 
 @UseGuards(JwtAuthGuard, RoleGuard)
-
 @Controller('cv')
 export class CvController {
   constructor(private readonly cvService: CvService) {}
 
-  /*@Post()
-  create(@Body() createCvDto: CreateCvDto) {
-    return this.cvService.create(createCvDto);
-  }*/
   @Post()
-      async create(@Body() cvDto: CreateCvDto, @Req() req): Promise<Cv> {
-      return this.cvService.createWithOwner({
-          ...cvDto,
-          userId: req.userId,
-      });}
+  create(
+      @Body() createCvDto: CreateCvDto,
+      @CurrentUser() user: any,
+  ): Promise<Cv> {
+    return this.cvService.createWithOwner(createCvDto, user.userId);
+  }
 
-  @Get()
-  findAll() {
-    return this.cvService.findAll();
-  }
-  @Get('filter')
-  filterCvs(@Body() filterCvDto: FilterCvDto) { 
-    return this.cvService.filterCvs(filterCvDto);
-  }
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.cvService.findOne(id);
+  findOne(
+      @Param('id') id: string,
+      @CurrentUser() user: any,
+  ): Promise<Cv> {
+    return this.cvService.findOneWithUser(id, user.userId);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCvDto: UpdateCvDto) {
-    return this.cvService.update(id, updateCvDto);
+  update(
+      @Param('id') id: string,
+      @Body() updateCvDto: UpdateCvDto,
+      @CurrentUser() user: any,
+  ): Promise<Cv> {
+    return this.cvService.updateWithUser(id, updateCvDto, user.userId);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.cvService.remove(id);
+  remove(
+      @Param('id') id: string,
+      @CurrentUser() user: any,
+  ): Promise<void> {
+    return this.cvService.removeWithUser(id, user.userId);
   }
-
-  
 }
