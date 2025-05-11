@@ -9,8 +9,6 @@ import { SkillService } from 'src/skill/skill.service';
 import { FilterCvDto } from './dto/filterCvDto';
 import { UserService } from 'src/user/user.service';
 import { PaginationService ,PaginationResult} from 'src/services/pagination.service';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { CvCreatedEvent, CvDeletedEvent, CvReadEvent, CvUpdatedEvent } from 'src/cv-events/events/cv.events';
 
 @Injectable()
 export class CvService extends GenericService<Cv>  {
@@ -18,106 +16,38 @@ export class CvService extends GenericService<Cv>  {
     return this.repository;
   }
   constructor(
-    @InjectRepository(Cv)
-    protected readonly repository: Repository<Cv>,
-    private readonly skillService:SkillService,
-    private readonly userService:UserService,
-    private readonly paginationService: PaginationService,
-    private eventEmitter: EventEmitter2,
-
+      @InjectRepository(Cv)
+      protected readonly repository: Repository<Cv>,
+      private readonly skillService:SkillService,
+      private readonly userService:UserService,
+      private readonly paginationService: PaginationService,
   ) {
-    super(repository); 
+    super(repository);
   }
 
 
   //new paginate method
   async paginate(
-    page = 1,
-    limit = 10,
+      page = 1,
+      limit = 10,
   ): Promise<PaginationResult<Cv>> {
     const qb = this.repository
-      .createQueryBuilder('cv')
-      .leftJoinAndSelect('cv.user', 'user')
-      .leftJoinAndSelect('cv.skills', 'skills');
-      
+        .createQueryBuilder('cv')
+        .leftJoinAndSelect('cv.user', 'user')
+        .leftJoinAndSelect('cv.skills', 'skills');
+
 
     return this.paginationService.paginateQuery<Cv>(qb, page, limit);
   }
-  //added using the event emitter
-  async create(createCvDto: CreateCvDto): Promise<Cv> {
-    const entity = this.repository.create(createCvDto);
-     const cv= await this.repository.save(entity);
-    const user = await this.userService.findOne(createCvDto.userId);
-    const event = new CvCreatedEvent();
-    event.cvId = cv.id;
-    event.user = user;
-    event.details = `CV "${cv.name}" créé`;
-    this.eventEmitter.emit('cv.created', event);
-    return cv;
-  }
-  async findOne(id: string): Promise<Cv> {
-    const cv = await this.repository.findOne({ where: { id }, relations: ['skills'] });
-    if (!cv) {
-      throw new Error(`CV with id ${id} not found`);
-    }
-    const event = new CvReadEvent();
-    event.cvId = cv.id;
-    event.user = cv.user;
-    this.eventEmitter.emit('cv.read', event);
-    return cv;
-  }
-  async remove(id: string): Promise<void> {
-    const cv = await this.repository.findOne({ where: { id } });
-    if (cv) {
-      const event = new CvDeletedEvent();
-      event.cvId = cv.id;
-      event.user = cv.user;
-      event.details = `CV id:${cv.id} supprimé`;
-      this.eventEmitter.emit('cv.deleted', event);
-    }
-    await this.repository.delete(id);
-  }
-  async update(id: string, updateCvDto: UpdateCvDto): Promise<Cv> {
-    const cv = await this.repository.findOne({ where: { id } });
-    if (cv) {
-      const event = new CvUpdatedEvent();
-      event.cvId = cv.id;
-      event.user = cv.user;
-      event.details = `CV id:${cv.id} mis à jour`;
-      this.eventEmitter.emit('cv.updated', event);
-    }
-    await this.repository.update(id, updateCvDto);
-    return this.findOne(id);
-  }
-
   async findByJob(job: string): Promise<Cv[]> {
-    const cvs= await this.repository.find({ where: { job } });
-    if (cvs) {
-      (cvs as any).forEach((cv: Cv) => {
-        const event = new CvReadEvent();
-        event.cvId = cv.id;
-        event.user = cv.user;
-        this.eventEmitter.emit('cv.read', event);
-      });
-    }
-    
-    return cvs;
+    return this.repository.find({ where: { job } });
   }
 
   async findByUserId(userId: string): Promise<Cv[]> {
-    const cvs=await this.repository.find({ where: { user: { id: userId } } });
-    if (cvs) {
-      (cvs as any).forEach((cv: Cv) => {
-        const event = new CvReadEvent();
-        event.cvId = cv.id;
-        event.user = cv.user;
-        this.eventEmitter.emit('cv.read', event);
-      });
-    }
-    return cvs;
+    return this.repository.find({ where: { user: { id: userId } } });
   }
 
-  
+
   async addSkillToCv(cvId: string, skillId: string): Promise<Cv> {
     const cv = await this.repository.findOne({ where: { id: cvId }, relations: ['skills'] });
     if (!cv) {
@@ -130,11 +60,6 @@ export class CvService extends GenericService<Cv>  {
     }
 
     cv.skills.push(skill);
-     const event = new CvUpdatedEvent();
-    event.cvId = cv.id;
-    event.user =cv.user;
-    event.details = `CV id:${cv.id} mis à jour`;
-    this.eventEmitter.emit('cv.updated', event);
     return this.repository.save(cv);
   }
 
@@ -145,8 +70,8 @@ export class CvService extends GenericService<Cv>  {
 
     if (criteria) {
       query.andWhere(
-        '(cv.name LIKE :criteria OR cv.firstName LIKE :criteria OR cv.job LIKE :criteria)',
-        { criteria: `%${criteria}%` },
+          '(cv.name LIKE :criteria OR cv.firstName LIKE :criteria OR cv.job LIKE :criteria)',
+          { criteria: `%${criteria}%` },
       );
     }
 
@@ -158,31 +83,25 @@ export class CvService extends GenericService<Cv>  {
   }
 
 
-  //services for version 2 of my cv 
+  //services for version 2 of my cv
   async createWithOwner(createCvDto: CreateCvDto): Promise<Cv> {
     const { userId, skillIds = [], ...cvData } = createCvDto;
     const user = await this.userService.findOne(userId);
     if (!user) {
       throw new Error('Utilisateur non trouvé');
     }
-  
-    const skills = skillIds.length > 0 
-      ? await this.skillService.findByIds(skillIds)
-      : [];
-  
-    const datacv = this.repository.create({
+
+    const skills = skillIds.length > 0
+        ? await this.skillService.findByIds(skillIds)
+        : [];
+
+    const cv = this.repository.create({
       ...cvData,
       user,
       skills,
     });
-    const cv= await this.repository.save(datacv);
-    const event = new CvCreatedEvent();
-    event.cvId = cv.id;
-    event.user = user;
-    event.details = `CV "${cv.name}" créé`;
-    this.eventEmitter.emit('cv.created', event);
-  
-    return cv;
+
+    return await this.repository.save(cv);
   }
   async removeIfOwner(id: string, userId:   string) {
     const cv=await this.repository.findOne({ where: { id }});
@@ -195,31 +114,21 @@ export class CvService extends GenericService<Cv>  {
 
       throw new Error(`You are not the owner of this CV`);
     }
-     const event = new CvDeletedEvent();
-    event.cvId = cv.id;
-    event.user = cv.user;
-    event.details = `CV id:${cv.id} supprimé`;
-    this.eventEmitter.emit('cv.deleted', event);
     return await this.remove(id);
 
   }
- 
- 
+
+
   async updateIfOwner(id: string, updateCvDto: UpdateCvDto, userId: string) {
     const cv=await this.findOne(id);
     if (!cv) {
       throw new Error(`CV with id ${id} not found`);
     }
     console.log("the current user id ",cv);
-   
+
     if (cv.user.id !== userId) {
       throw new Error(`You are not the owner of this CV`);
     }
-     const event = new CvUpdatedEvent();
-    event.cvId = cv.id;
-    event.user =cv.user;
-    event.details = `CV id:${cv.id} mis à jour`;
-    this.eventEmitter.emit('cv.updated', event);
     await this.repository.update(id, updateCvDto);
   }
   async setImagePath(cvId: string, imagePath: string): Promise<Cv> {
@@ -231,6 +140,6 @@ export class CvService extends GenericService<Cv>  {
     return this.repository.save(cv);
   }
 
-  
- 
+
+
 }
