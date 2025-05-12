@@ -65,8 +65,9 @@ export class AuthService {
     return {accessToken};
   }*/
     async login(data: LoginDTO) {
+      console.log("hello from login Service", data);
       const user = await this.validateUser(data.email, data.password);
-    
+      console.log("user", user);
       if (!user) {
         throw new UnauthorizedException('Email ou mot de passe incorrect');
       }
@@ -76,7 +77,7 @@ export class AuthService {
         email: user.email,
         role: user.role,
       };
-    
+      console.log("payload", payload);
       return {
         access_token: this.jwtService.sign(payload),
       };
