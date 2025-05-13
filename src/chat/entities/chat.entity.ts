@@ -5,12 +5,8 @@ import {
   Column,
   CreateDateColumn,
   ManyToOne,
-  JoinTable,
-  ManyToMany,
-  OneToMany,
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
-import { Message } from 'src/message/entities/message.entity';
 
 @Entity()
 export class Chat {
@@ -23,10 +19,9 @@ export class Chat {
   @CreateDateColumn()
   createdAt: Date;
 
-  @ManyToMany(() => User, user => user.chats)
-  @JoinTable()
-  participants: User[];
+  @ManyToOne(() => User, (user) => user.sentMessages, { eager: true })
+  sender: User;
 
-  @OneToMany(() => Message, message => message.chat)
-  messages: Message[];
+  @ManyToOne(() => User, (user) => user.receivedMessages, { eager: true })
+  receiver: User;
 }

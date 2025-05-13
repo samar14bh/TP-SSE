@@ -1,21 +1,7 @@
-// src/message/dto/create-message.dto.ts
-
-import { IsNotEmpty, IsOptional, IsString, IsUUID, IsNumber } from 'class-validator';
+import { IsString } from 'class-validator';
 
 export class CreateMessageDto {
-  @IsNumber()
-  @IsNotEmpty()
-  chatId: number;
-
-  @IsUUID()
-  @IsNotEmpty()
-  senderId: string;
-
-  @IsOptional()
-  @IsString()
-  text?: string;
-
-  @IsOptional()
-  @IsString()
-  image?: string;
+   senderId: string;
+  receiverId: string;
+  content: string;
 }

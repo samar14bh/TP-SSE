@@ -1,31 +1,42 @@
-import { InjectRepository } from "@nestjs/typeorm";
-import { Chat } from "./entities/chat.entity";
-import { User } from "src/user/entities/user.entity";
-import { Repository } from "typeorm";
-import { Injectable } from "@nestjs/common";
+// src/chat/chat.service.ts
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Chat } from './entities/chat.entity';
+import { User } from '../user/entities/user.entity';
 
 @Injectable()
 export class ChatService {
   constructor(
-    @InjectRepository(Chat) private chatRepo: Repository<Chat>,
-    @InjectRepository(User) private userRepo: Repository<User>,
+    @InjectRepository(Chat)
+    private chatRepository: Repository<Chat>,
+
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
   ) {}
 
-  async findOrCreateChat(userIds: string[]): Promise<Chat> {
-    const users = await this.userRepo.findByIds(userIds);
-    if (users.length !== 2) throw new Error('Invalid participants');
+ async saveMessage(senderId: string, receiverId: string, content: string): Promise<Chat> {
+  const sender = await this.userRepository.findOneBy({ id: senderId });
+  const receiver = await this.userRepository.findOneBy({ id: receiverId });
 
-    const existingChat = await this.chatRepo
-      .createQueryBuilder('chat')
-      .leftJoinAndSelect('chat.participants', 'participant')
-      .where('participant.id IN (:...ids)', { ids: userIds })
-      .groupBy('chat.id')
-      .having('COUNT(participant.id) = :count', { count: userIds.length })
-      .getOne();
+  if (!sender || !receiver) {
+    throw new Error('Sender or Receiver not found');
+  }
 
-    if (existingChat) return existingChat;
+  const message = this.chatRepository.create({
+    sender,
+    receiver,
+    content,
+    createdAt: new Date(),
+  });
 
-    const chat = this.chatRepo.create({ participants: users });
-    return this.chatRepo.save(chat);
+  return this.chatRepository.save(message);
+}
+
+  async getAllMessages(): Promise<Chat[]> {
+    return this.chatRepository.find({
+      relations: ['sender', 'receiver'],
+      order: { createdAt: 'DESC' },
+    });
   }
 }
