@@ -1,3 +1,4 @@
+// src/chat/chat.gateway.ts
 import {
   WebSocketGateway,
   SubscribeMessage,
@@ -10,6 +11,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 import { CreateMessageDto } from './dto/create-message.dto';
+import { Chat } from './entities/chat.entity';
 
 @WebSocketGateway({
   cors: {
@@ -35,11 +37,25 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('send_message')
-  handleMessage(
+  async handleMessage(
     @MessageBody() createMessageDto: CreateMessageDto,
-  ) {
-    const { author, content } = createMessageDto;
-    const message = this.chatService.saveMessage(author, content);
-    this.server.emit('new_message', message);
+  ): Promise<void> {
+    try {
+      const message: Chat = await this.chatService.saveMessage(
+        createMessageDto.senderId,
+        createMessageDto.receiverId,
+        createMessageDto.content,
+      );
+
+      this.server.emit('new_message', {
+        id: message.id,
+        sender: message.sender,
+        receiver: message.receiver,
+        content: message.content,
+        createdAt: message.createdAt,
+      });
+    } catch (error) {
+      console.error('Error saving message:', error.message);
+    }
   }
 }

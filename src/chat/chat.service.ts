@@ -1,24 +1,42 @@
 // src/chat/chat.service.ts
 import { Injectable } from '@nestjs/common';
-import { Message } from './entities/message.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Chat } from './entities/chat.entity';
+import { User } from '../user/entities/user.entity';
 
 @Injectable()
 export class ChatService {
-  private messages: Message[] = [];
-  private idCounter = 1;
+  constructor(
+    @InjectRepository(Chat)
+    private chatRepository: Repository<Chat>,
 
-  saveMessage(author: string, content: string): Message {
-    const message: Message = {
-      id: this.idCounter++,
-      author,
-      content,
-      timestamp: new Date(),
-    };
-    this.messages.push(message);
-    return message;
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+  ) {}
+
+ async saveMessage(senderId: string, receiverId: string, content: string): Promise<Chat> {
+  const sender = await this.userRepository.findOneBy({ id: senderId });
+  const receiver = await this.userRepository.findOneBy({ id: receiverId });
+
+  if (!sender || !receiver) {
+    throw new Error('Sender or Receiver not found');
   }
 
-  getAllMessages(): Message[] {
-    return this.messages;
+  const message = this.chatRepository.create({
+    sender,
+    receiver,
+    content,
+    createdAt: new Date(),
+  });
+
+  return this.chatRepository.save(message);
+}
+
+  async getAllMessages(): Promise<Chat[]> {
+    return this.chatRepository.find({
+      relations: ['sender', 'receiver'],
+      order: { createdAt: 'DESC' },
+    });
   }
 }

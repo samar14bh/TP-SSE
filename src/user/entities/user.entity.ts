@@ -1,4 +1,5 @@
 import { IsEmail, IsNotEmpty } from "class-validator";
+import { Chat } from "src/chat/entities/chat.entity";
 import { Cv } from "src/cv/entities/cv.entity";
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
@@ -27,5 +28,11 @@ export class User {
 
     @OneToMany(() => Cv, (cv: Cv) => cv.user)
     cvs: Cv[];
+
+    @OneToMany(() => Chat, (chat) => chat.sender)
+    sentMessages: Chat[];
+
+    @OneToMany(() => Chat, (chat) => chat.receiver)
+    receivedMessages: Chat[];
 
 }

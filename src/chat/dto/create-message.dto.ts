@@ -1,9 +1,7 @@
 import { IsString } from 'class-validator';
 
 export class CreateMessageDto {
-  @IsString()
-  author: string;
-
-  @IsString()
+   senderId: string;
+  receiverId: string;
   content: string;
 }

@@ -1,22 +1,26 @@
 const { io } = require('socket.io-client');
 
+// Change the URL and port to match your NestJS app
 const socket = io('http://localhost:3000');
 
+// Listen for connection
 socket.on('connect', () => {
-  console.log('✅ Connected to server');
+  console.log('✅ Connected to WebSocket server');
 
-  // Send a message after connecting
+  // Send a test message
   socket.emit('send_message', {
-    author: 'TestUser',
-    content: 'Hello from Node.js test client!',
+    senderId: 1,
+    receiverId: 2,
+    content: 'Hello from test client!',
   });
 });
 
 // Listen for new messages
-socket.on('new_message', (msg) => {
-  console.log('📩 New message received:', msg);
+socket.on('new_message', (message) => {
+  console.log('📩 New message received:', message);
 });
 
-socket.on('disconnect', () => {
-  console.log('❌ Disconnected from server');
+// Listen for errors
+socket.on('connect_error', (err) => {
+  console.error('❌ Connection error:', err.message);
 });
