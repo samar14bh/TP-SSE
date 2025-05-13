@@ -12,6 +12,7 @@ import { CvModule } from './cv/cv.module';
 import { SkillModule } from './skill/skill.module';
 import { UserModule } from './user/user.module';
 import { CvEventsModule } from './cv-events/cv-events.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -48,10 +49,11 @@ import { CvEventsModule } from './cv-events/cv-events.module';
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: { expiresIn: configService.get<string>('JWT_EXPIRES_IN') },
       }),
+      
     }),
 
     EventEmitterModule.forRoot(),
-
+    ChatModule, 
     CvModule,
     SkillModule,
     UserModule,
@@ -59,5 +61,6 @@ import { CvEventsModule } from './cv-events/cv-events.module';
   ],
   controllers: [AppController],
   providers: [AppService],
+  
 })
 export class AppModule {}
