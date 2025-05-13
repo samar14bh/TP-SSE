@@ -9,20 +9,22 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { ChatService } from './chat.service';
+import { MessageService } from 'src/message/message.service';
 import { CreateMessageDto } from './dto/create-message.dto';
-import { Chat } from './entities/chat.entity';
+import { Message } from 'src/message/entities/message.entity';
 
 @WebSocketGateway({
   cors: {
     origin: '*',
   },
 })
-export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class ChatGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly chatService: ChatService) {}
+  constructor(private readonly messageService: MessageService) {}
 
   afterInit(server: Server) {
     console.log('WebSocket Gateway initialized');
@@ -37,21 +39,21 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('send_message')
-  async handleMessage(
-    @MessageBody() createMessageDto: CreateMessageDto,
-  ): Promise<void> {
+  async handleMessage(@MessageBody() createMessageDto: CreateMessageDto): Promise<void> {
     try {
-      const message: Chat = await this.chatService.saveMessage(
+      const message: Message = await this.messageService.sendMessage(
+        createMessageDto.chatId,
         createMessageDto.senderId,
-        createMessageDto.receiverId,
-        createMessageDto.content,
+        createMessageDto.text,
+        createMessageDto.image,
       );
 
       this.server.emit('new_message', {
         id: message.id,
-        sender: message.sender,
-        receiver: message.receiver,
-        content: message.content,
+        chatId: message.chat?.id,
+        senderId: message.sender?.id,
+        text: message.text,
+        image: message.image,
         createdAt: message.createdAt,
       });
     } catch (error) {
