@@ -24,10 +24,27 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   afterInit(server: Server) {
     console.log('WebSocket Gateway initialized');
+    this.loadInitialMessages();
+  }
+
+  async loadInitialMessages() {
+    try {
+      const messages = await this.chatService.getAllMessages();
+      this.server.emit('load_messages', messages);
+    } catch (error) {
+      console.error('Error loading initial messages:', error);
+    }
   }
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
+    this.chatService.getAllMessages()
+      .then(messages => {
+        client.emit('load_messages', messages);
+      })
+      .catch(error => {
+        console.error('Error sending initial messages:', error);
+      });
   }
 
   handleDisconnect(client: Socket) {
@@ -35,11 +52,38 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   @SubscribeMessage('send_message')
-  handleMessage(
+  async handleMessage(
     @MessageBody() createMessageDto: CreateMessageDto,
   ) {
-    const { author, content } = createMessageDto;
-    const message = this.chatService.saveMessage(author, content);
-    this.server.emit('new_message', message);
+    try {
+      const { author, content } = createMessageDto;
+      const message = await this.chatService.saveMessage(author, content);
+      this.server.emit('new_message', message);
+    } catch (error) {
+      console.error('Error handling message:', error);
+    }
+  }
+
+  @SubscribeMessage('add_reaction')
+  async handleAddReaction(
+    @MessageBody() data: { messageId: number; emoji: string; userId: string }
+  ) {
+    const message = await this.chatService.addReaction(
+      data.messageId,
+      data.emoji,
+      data.userId
+    );
+    this.server.emit('message_updated', message);
+  }
+
+  @SubscribeMessage('remove_reaction')
+  async handleRemoveReaction(
+    @MessageBody() data: { messageId: number; userId: string }
+  ) {
+    const message = await this.chatService.removeReaction(
+      data.messageId,
+      data.userId
+    );
+    this.server.emit('message_updated', message);
   }
 }
