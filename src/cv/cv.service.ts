@@ -89,12 +89,10 @@ export class CvService extends GenericService<Cv> {
     return this.repository.findOneOrFail({ where: { id }, relations: ['skills', 'user'] });
   }
 
+
+
   async removeWithUser(id: string, userId: string): Promise<void> {
     const cv = await this.repository.findOneOrFail({ where: { id }, relations: ['user'] });
-
-    if (cv.user.id !== userId) {
-      throw new NotFoundException('Unauthorized action');
-    }
 
     const user = await this.userRepository.findOneOrFail({ where: { id: userId } });
 
