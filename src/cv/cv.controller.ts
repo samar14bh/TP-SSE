@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../jwt/jwt-auth.guard';
 import { RoleGuard } from '../jwt/RoleGuard';
 import { CurrentUser } from '../decorator/currentUser';
 import { Cv } from './entities/cv.entity';
+import { LoggedUser } from 'src/Types/LoggedUser';
 
 @UseGuards(JwtAuthGuard, RoleGuard)
 @Controller('cv')
@@ -15,7 +16,7 @@ export class CvController {
   @Post()
   create(
       @Body() createCvDto: CreateCvDto,
-      @CurrentUser() user: any,
+      @CurrentUser() user: LoggedUser,
   ): Promise<Cv> {
     return this.cvService.createWithOwner(createCvDto, user.userId);
   }
@@ -23,7 +24,7 @@ export class CvController {
   @Get(':id')
   findOne(
       @Param('id') id: string,
-      @CurrentUser() user: any,
+      @CurrentUser() user: LoggedUser,
   ): Promise<Cv> {
     return this.cvService.findOneWithUser(id, user.userId);
   }
@@ -32,7 +33,7 @@ export class CvController {
   update(
       @Param('id') id: string,
       @Body() updateCvDto: UpdateCvDto,
-      @CurrentUser() user: any,
+      @CurrentUser() user: LoggedUser,
   ): Promise<Cv> {
     return this.cvService.updateWithUser(id, updateCvDto, user.userId);
   }
@@ -40,7 +41,7 @@ export class CvController {
   @Delete(':id')
   remove(
       @Param('id') id: string,
-      @CurrentUser() user: any,
+      @CurrentUser() user: LoggedUser,
   ): Promise<void> {
     return this.cvService.removeWithUser(id, user.userId);
   }

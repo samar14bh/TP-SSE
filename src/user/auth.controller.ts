@@ -19,7 +19,9 @@ export class AuthController {
   }
   @Post('login')
   async login(@Body() dto: LoginDTO) {
+   
     const user = await this.authService.validateUser(dto.email, dto.password);
+    
     if (!user) {
       throw new UnauthorizedException('Invalid email or password');
     }

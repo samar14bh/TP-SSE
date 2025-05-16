@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CV Events Stream</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #events {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .event {
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        #logout {
+            float: right;
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+            padding: 10px;
+            background: #ffeeee;
+            border-radius: 4px;
+        }
+        .event-type {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .event-time {
+            color: #666;
+            font-size: 0.8em;
+        }
+        .event-id {
+            font-size: 0.8em;
+            color: #555;
+            margin-bottom: 5px;
+        }
+    </style>
+    <!-- Required for sending Authorization header -->
+    <script src="https://cdn.jsdelivr.net/npm/event-source-polyfill@1.0.31/src/eventsource.min.js"></script>
+</head>
+<body>
+    <button id="logout">Logout</button>
+    <h1>CV Events Stream</h1>
+    <div id="events">
+        <p>Connecting to event stream...</p>
+    </div>
+    <div id="error" class="error" style="display: none;"></div>
+
+    <script>
+        //  Authentication Check
+        const token = localStorage.getItem('access_token');
+        const errorElement = document.getElementById('error');
+        const eventsContainer = document.getElementById('events');
+        
+        if (!token) {
+            showError('Please login first');
+            setTimeout(() => window.location.href = 'login.html', 1500);
+            throw new Error('No access token found');
+        }
+
+        const eventSource = new EventSourcePolyfill('http://localhost:3000/cv-events/sse', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            withCredentials: true,
+            heartbeatTimeout: 300000 
+        });
+
+        eventSource.addEventListener('open', () => {
+            console.log('SSE connection established');
+            eventsContainer.innerHTML = '<p>Waiting for events...</p>';
+            hideError();
+        });
+
+        eventSource.addEventListener('cv-event', (e) => {
+            try {
+                const event = JSON.parse(e.data);
+                addEventToUI(event, e.lastEventId);
+            } catch (err) {
+                console.error('Error parsing event:', err);
+            }
+        });
+
+        eventSource.addEventListener('message', (e) => {
+            try {
+                if (!e.type || e.type === 'message') {
+                    console.log('Received default message event:', e);
+                    const event = JSON.parse(e.data);
+                    addEventToUI(event, e.lastEventId);
+                }
+            } catch (err) {
+                console.error('Error parsing default message:', err);
+            }
+        });
+
+        eventSource.onerror = (e) => {
+            console.error('SSE Error:', e);
+            
+            if (e.status === 401) {
+                showError('Session expired. Redirecting to login...');
+                localStorage.removeItem('access_token');
+                setTimeout(() => window.location.href = 'login.html', 1500);
+            } else {
+                showError('Connection error. Attempting to reconnect...');
+                
+                if (eventSource.readyState === EventSource.CLOSED) {
+                    setTimeout(() => {
+                        location.reload(); 
+                    }, 10000); 
+                }
+            }
+        };
+
+        function addEventToUI(event, eventId) {
+            const eventElement = document.createElement('div');
+            eventElement.className = 'event';
+            
+            const eventData = event;
+            
+            const timestamp = new Date().toLocaleString();
+            
+            eventElement.innerHTML = `
+                <div class="event-type">${eventData.typeOperation || 'CV Event'}</div>
+                <div class="event-id">ID: ${eventId || eventData.id || 'N/A'}</div>
+                <div class="event-time">${timestamp}</div>
+                <pre>${JSON.stringify(eventData, null, 2)}</pre>
+            `;
+            
+            const waitingMsg = eventsContainer.querySelector('p');
+            if (waitingMsg && waitingMsg.textContent.includes('Waiting')) {
+                eventsContainer.removeChild(waitingMsg);
+            }
+            
+            eventsContainer.insertBefore(eventElement, eventsContainer.firstChild);
+        }
+
+        function showError(message) {
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+
+        function hideError() {
+            errorElement.style.display = 'none';
+        }
+
+        //  Logout Handler
+        document.getElementById('logout').addEventListener('click', () => {
+            localStorage.removeItem('access_token');
+            eventSource.close();
+            window.location.href = 'login.html';
+        });
+    </script>
+</body>
+</html>

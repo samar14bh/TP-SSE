@@ -30,29 +30,7 @@ export class CvControllerV2 {
       limit = limit > 50 ? 50 : limit;
       return this.cvService.paginate(page, limit);
     }
-    /*
-    @Post()
-    async create(@Body() cvDto: CreateCvDto, @Req() req): Promise<Cv> {
-    return this.cvService.createWithOwner({
-        ...cvDto,
-        userId: req.userId,
-    });
-
-    }
-
-    @Put(':id')
-    async update(@Param('id') id: string, @Body() updateCvDto, @Request() req) {
-        
-        
-        return await this.cvService.updateIfOwner(id, updateCvDto, req.userId);
-    }
-    @Delete(':id')
-    async remove(@Param('id') id: string, @Request() req) {
-        
-        
-        return await  this.cvService.removeIfOwner(id, req.userId);
-    }
-*/
+ 
 
     @Post()
     create(@Body() createCvDto: CreateCvDto, @CurrentUser() user: User) {
@@ -62,7 +40,6 @@ export class CvControllerV2 {
 
   
   
-  //@UseGuards(AdminGuard)
   @Role('admin')
   @Get('getAll')
   findAllAdmin() {
@@ -114,14 +91,14 @@ export class CvControllerV2 {
     @Body() updateCvDto: UpdateCvDto,
   ) {
     const cv = await this.cvService.findOne(id);
+    console.log("cv",cv);
+    if (!cv ) throw new NotFoundException('CV not found');
 
-    if (!cv || !cv[0]) throw new NotFoundException('CV not found');
-
-    if (user.role !== 'admin' && cv[0].user.id !== user.id) {
+    if (user.role !== 'admin' && cv.user.id !== user.id) {
       throw new ForbiddenException("You can't delete this CV");
     }
 
-    return this.cvService.remove(id);
+    return this.cvService.removeWithUser(id, user.id);
   }
 
 
