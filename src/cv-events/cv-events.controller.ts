@@ -14,7 +14,7 @@ import { CurrentUser } from 'src/decorator/currentUser';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { LoggedUser } from 'src/Types/LoggedUser';
 
-
+import { MessageEvent } from 'src/Types/MessageEvent';
 interface RequestWithUser extends Request {
   user: User; 
 }
@@ -59,7 +59,7 @@ export class CvEventsController {
   
 @UseGuards(JwtAuthGuard)
 @Sse('sse')
-sse(@CurrentUser() user: LoggedUser): Observable<{ data: string; id?: string; type?: string; retry?: number }> {
+sse(@CurrentUser() user: LoggedUser): Observable<MessageEvent> {
   console.log("Current user:", user);  
   const isAdmin = user.role === 'admin';
 
