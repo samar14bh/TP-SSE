@@ -60,37 +60,34 @@ export class CvEventsController {
 @UseGuards(JwtAuthGuard)
 @Sse('sse')
 sse(@CurrentUser() user: LoggedUser): Observable<MessageEvent> {
-  console.log("Current user:", user);  
+  console.log("SSE Connection established for user:", user.userId);
+
   const isAdmin = user.role === 'admin';
+  const eventTypes = ['cv.created', 'cv.updated', 'cv.deleted', 'cv.read'];
 
-  const events$ = ['cv.created', 'cv.updated', 'cv.deleted', 'cv.read'].map(eventType => 
-    fromEvent(this.eventEmitter, eventType)
+  const events$ = merge(
+    ...eventTypes.map(eventType => fromEvent<CvEvent>(this.eventEmitter, eventType))
   );
 
-  return merge(...events$).pipe(
-    map((event: CvEvent) => {
-      console.log("Event received:", event);
-
+  return events$.pipe(
+    filter(event => {
       const shouldSendEvent = isAdmin || event.user.id === user.userId;
-
-      if (shouldSendEvent) {
-        return {
-          data: JSON.stringify(event), 
-          type: event.typeOperation,
-          id: String(event.id),
-          retry: 10000 
-        };
-      }
-
-      return null;
+      return shouldSendEvent;
     }),
-    filter((event) => event !== null)
+    map(event => ({
+      data: JSON.stringify(event),
+      type: event.typeOperation,
+      id: String(event.id),
+      retry: 10000
+    }))
   );
 }
 
-
-
 }
+
+
+
+
 
   
   
